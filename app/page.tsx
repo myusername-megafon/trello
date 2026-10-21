@@ -35,7 +35,7 @@ async function BoardsList() {
     <div className="flex gap-6 items-start">
       {boards.map((board) => (
         <div key={board.id} className="bg-white p-4 rounded-lg shadow min-w-[250px]">
-          <h3 className="font-bold text-lg mb-2">{board.title}</h3>
+          <h3 className="font-bold text-lg mb-2 text-gray-800">{board.title}</h3>
         </div>
       ))}
     </div>
