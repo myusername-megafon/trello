@@ -1,58 +1,76 @@
-import { DeployButton } from "@/components/deploy-button";
-import { EnvVarWarning } from "@/components/env-var-warning";
 import { AuthButton } from "@/components/auth-button";
-import { Hero } from "@/components/hero";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { ConnectSupabaseSteps } from "@/components/tutorial/connect-supabase-steps";
-import { SignUpUserSteps } from "@/components/tutorial/sign-up-user-steps";
-import { hasEnvVars } from "@/lib/utils";
-import Link from "next/link";
 import { Suspense } from "react";
+import { createClient } from "@/lib/supabase/server";
+import { CreateBoardForm } from "@/components/create-board-form";
 
+// 1. Компонент для загрузки данных (вынесен отдельно)
+async function BoardsList() {
+  const supabase = await createClient();
+  
+  // Получаем данные пользователя (это не вызовет ошибку, т.к. мы внутри Suspense)
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return <p className="text-red-500">Ошибка авторизации. Пожалуйста, войдите снова.</p>;
+  }
+
+  // Получаем доски
+  const { data: boards } = await supabase
+    .from("boards")
+    .select("*")
+    .order("id", { ascending: true });
+
+  if (!boards || boards.length === 0) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow text-center">
+        <p className="text-gray-500 mb-4">У вас пока нет досок.</p>
+        <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Создать первую доску
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-6 items-start">
+      {boards.map((board) => (
+        <div key={board.id} className="bg-white p-4 rounded-lg shadow min-w-[250px]">
+          <h3 className="font-bold text-lg mb-2">{board.title}</h3>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 2. Основной компонент страницы (отрисуется мгновенно)
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center">
-      <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-          <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-            <div className="flex gap-5 items-center font-semibold">
-              <Link href={"/"}>Next.js Supabase Starter</Link>
-              <div className="flex items-center gap-2">
-                <DeployButton />
-              </div>
-            </div>
-            {!hasEnvVars ? (
-              <EnvVarWarning />
-            ) : (
-              <Suspense>
-                <AuthButton />
-              </Suspense>
-            )}
-          </div>
-        </nav>
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-          <Hero />
-          <main className="flex-1 flex flex-col gap-6 px-4">
-            <h2 className="font-medium text-xl mb-4">Next steps</h2>
-            {hasEnvVars ? <SignUpUserSteps /> : <ConnectSupabaseSteps />}
-          </main>
+    <main className="min-h-screen bg-gray-100 flex flex-col">
+      {/* Шапка */}
+      <nav className="bg-blue-600 text-white p-4 flex justify-between items-center shadow-md">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Trello Clone</h1>
+        </div>
+        <Suspense fallback={<div className="w-20 h-8 bg-blue-500 animate-pulse rounded"></div>}>
+          <AuthButton />
+        </Suspense>
+      </nav>
+
+      {/* Контент */}
+      <div className="p-8 flex-1 overflow-x-auto">
+
+      {/* Добавляем форму сюда */}
+        <div className="mb-6">
+          <CreateBoardForm />
         </div>
 
-        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-          <p>
-            Powered by{" "}
-            <a
-              href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-              target="_blank"
-              className="font-bold hover:underline"
-              rel="noreferrer"
-            >
-              Supabase
-            </a>
-          </p>
-          <ThemeSwitcher />
-        </footer>
-      </div>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Мои доски</h2>
+        
+        {/* Оборачиваем загрузку досок в Suspense */}
+        <Suspense fallback={<p className="text-gray-500 animate-pulse">Загрузка ваших досок...</p>}>
+          <BoardsList />
+        </Suspense>
+      </div> 
     </main>
   );
 }
