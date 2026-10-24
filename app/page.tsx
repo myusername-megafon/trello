@@ -2,6 +2,7 @@ import { AuthButton } from "@/components/auth-button";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { CreateBoardForm } from "@/components/create-board-form";
+import Link from "next/link";
 
 // 1. Компонент для загрузки данных (вынесен отдельно)
 async function BoardsList() {
@@ -32,14 +33,18 @@ async function BoardsList() {
   }
 
   return (
-    <div className="flex gap-6 items-start">
-      {boards.map((board) => (
-        <div key={board.id} className="bg-white p-4 rounded-lg shadow min-w-[250px]">
-          <h3 className="font-bold text-lg mb-2 text-gray-800">{board.title}</h3>
-        </div>
-      ))}
-    </div>
-  );
+  <div className="flex gap-6 items-start">
+    {boards.map((board) => (
+      <Link 
+        href={`/board/${board.id}`} 
+        key={board.id} 
+        className="bg-white p-4 rounded-lg shadow min-w-[250px] block hover:shadow-lg transition-shadow"
+      >
+        <h3 className="font-bold text-lg mb-2 text-gray-800">{board.title}</h3>
+      </Link>
+    ))}
+  </div>
+); 
 }
 
 // 2. Основной компонент страницы (отрисуется мгновенно)
