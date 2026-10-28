@@ -67,43 +67,68 @@ const [cards, setCards] = useState(initialCards.map((c: any) => ({ ...c, id: `ca
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    setActiveCard(null);
-    const { active, over } = event;
-    if (!over) return;
+  setActiveCard(null);
+  const { active, over } = event;
+  if (!over) return;
 
-    const activeId = active.id;
-    const overId = over.id;
+  const activeId = active.id;
+  const overId = over.id;
 
-    if (activeId === overId) return;
+  // Если бросили на себя же
+  if (activeId === overId) return;
 
-    const isActiveACard = active.data.current?.type === "Card";
-    const isOverACard = over.data.current?.type === "Card";
-    const isOverAList = over.data.current?.type === "List";
+  const isActiveACard = active.data.current?.type === "Card";
+  const isOverACard = over.data.current?.type === "Card";
+  const isOverAList = over.data.current?.type === "List";
 
-    if (!isActiveACard) return;
+  if (!isActiveACard) return;
 
-    if (isActiveACard && isOverACard) {
-      setCards((cards: any[]) => {
-        const activeIndex = cards.findIndex((c) => c.id === activeId);
-        const overIndex = cards.findIndex((c) => c.id === overId);
-        return arrayMove(cards, activeIndex, overIndex);
-      });
+  // Случай 1: Бросаем на другую карточку (сортировка внутри или смена колонки)
+  if (isOverACard) {
+    setCards((prevCards: any[]) => {
+      const activeIndex = prevCards.findIndex((c) => c.id === activeId);
+      const overIndex = prevCards.findIndex((c) => c.id === overId);
+      
+      // Если карточки в разных колонках — нужно изменить list_id
+      const activeCard = prevCards[activeIndex];
+      const overCard = prevCards[overIndex];
+      
+      if (activeCard.list_id !== overCard.list_id) {
+        // Меняем колонку и переставляем
+        const newCards = [...prevCards];
+        newCards[activeIndex] = { ...activeCard, list_id: overCard.list_id };
+        return arrayMove(newCards, activeIndex, overIndex);
+      }
+      
+      // Если в одной колонке — просто сортируем
+      return arrayMove(prevCards, activeIndex, overIndex);
+    });
+
+    // Обновляем в базе, если колонка изменилась
+    const activeCard = cards.find(c => c.id === activeId);
+    const overCard = cards.find(c => c.id === overId);
+    if (activeCard && overCard && activeCard.list_id !== overCard.list_id) {
+       await supabase.from("cards").update({ list_id: overCard.list_id }).eq("id", activeCard.dbId);
     }
+  }
 
-    if (isActiveACard && isOverAList) {
-      const newListId = overId;
-      setCards((prevCards: any[]) => 
-        prevCards.map((card) => 
-          card.id === activeId ? { ...card, list_id: newListId } : card
-        )
-      );
+  // Случай 2: Бросаем в пустую колонку (или в конец)
+  if (isOverAList) {
+    const newListId = over.id; // Это ID колонки с префиксом "list-"
+    const dbListId = lists.find(l => l.id === newListId)?.dbId;
 
-      await supabase
-        .from("cards")
-        .update({ list_id: newListId })
-        .eq("id", cards.find((c: any) => c.id === activeId)?.dbId);
+    setCards((prevCards: any[]) => 
+      prevCards.map((card) => 
+        card.id === activeId ? { ...card, list_id: dbListId } : card
+      )
+    );
+
+    const activeCard = cards.find(c => c.id === activeId);
+    if (activeCard && dbListId) {
+      await supabase.from("cards").update({ list_id: dbListId }).eq("id", activeCard.dbId);
     }
-  };
+  }
+};
 
   return (
     <DndContext collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
