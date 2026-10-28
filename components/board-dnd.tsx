@@ -114,7 +114,7 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
 
     // --- Сценарий Б: Бросаем карточку в пустую колонку ---
     if (isOverAList) {
-      const newListIdStr = over.id;
+            const newListIdStr = String(over.id); // Принудительно делаем строку
       const realListId = parseInt(newListIdStr.replace("list-", ""), 10);
       
       setCards((prevCards: any[]) => 
