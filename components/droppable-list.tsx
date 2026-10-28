@@ -4,7 +4,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { SortableCard } from "./sortable-card";
 
-export function DroppableList({ list, cards, onAddCard }: any) {
+export function DroppableList({ list, cards, onAddCard, onDeleteCard, onDeleteList }: any) {
   const { setNodeRef } = useDroppable({
     id: list.id,
     data: { type: "List", list },
@@ -19,7 +19,7 @@ export function DroppableList({ list, cards, onAddCard }: any) {
     if (!title.trim()) return;
 
     setLoading(true);
-    const success = await onAddCard(list.id, title); // Вызываем функцию из BoardDnd
+    const success = await onAddCard(list.id, title);
     if (success) {
       setTitle("");
       setIsAdding(false);
@@ -29,18 +29,31 @@ export function DroppableList({ list, cards, onAddCard }: any) {
 
   return (
     <div className="bg-gray-100 rounded-lg w-72 flex-shrink-0 flex flex-col max-h-[80vh]">
-      <div className="p-3 font-semibold text-gray-700 bg-gray-200 rounded-t-lg flex justify-between items-center">
+      {/* Шапка колонки */}
+      <div className="p-3 font-semibold text-gray-700 bg-gray-200 rounded-t-lg flex justify-between items-center group">
         <span>{list.title}</span>
-        <span className="text-xs bg-gray-300 px-2 py-0.5 rounded-full">{cards.length}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs bg-gray-300 px-2 py-0.5 rounded-full">{cards.length}</span>
+          
+          {/* Кнопка удаления колонки */}
+          <button 
+            onClick={() => onDeleteList(list)} // Передаем весь объект колонки
+            className="text-gray-400 hover:text-red-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Отправить колонку в корзину"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <div ref={setNodeRef} className="p-3 flex-1 overflow-y-auto min-h-[50px] flex flex-col gap-2">
         <SortableContext items={cards.map((c: any) => c.id)} strategy={verticalListSortingStrategy}>
           {cards.map((card: any) => (
-            <SortableCard key={card.id} card={card} />
+            <SortableCard key={card.id} card={card} onDelete={onDeleteCard} />
           ))}
         </SortableContext>
 
+        {/* Форма добавления карточки */}
         {isAdding ? (
           <form onSubmit={handleSubmit} className="flex flex-col gap-2 mt-2">
             <input

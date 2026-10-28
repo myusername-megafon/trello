@@ -21,6 +21,7 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
 
   const supabase = createClient();
 
+  // --- ДОБАВЛЕНИЕ ---
   const handleAddList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newListTitle.trim()) return;
@@ -64,6 +65,82 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
     return false;
   };
 
+  // --- АРХИВАЦИЯ (В КОРЗИНУ) ---
+  const handleDeleteCard = async (card: any) => {
+    if (!confirm("Отправить карточку в корзину?")) return;
+    
+    // 1. Копируем в архив
+    const { error: trashError } = await supabase.from("trash_cards").insert({
+      original_id: card.dbId,
+      list_id: card.list_id,
+      title: card.title,
+      description: card.description || null,
+      position: card.position || 0,
+    });
+
+    if (trashError) {
+      alert("Ошибка при архивации: " + trashError.message);
+      return;
+    }
+
+    // 2. Удаляем из основной таблицы
+    const { error: deleteError } = await supabase.from("cards").delete().eq("id", card.dbId);
+    
+    if (deleteError) {
+      alert("Ошибка при удалении: " + deleteError.message);
+    } else {
+      setCards((prev) => prev.filter((c: any) => c.dbId !== card.dbId));
+    }
+  };
+
+  const handleDeleteList = async (list: any) => {
+    if (!confirm("Отправить колонку и все её карточки в корзину?")) return;
+    
+    // 1. Находим все карточки этой колонки
+    const listCards = cards.filter((c: any) => c.list_id === list.dbId);
+
+    // 2. Копируем колонку в архив
+    const { error: trashListError } = await supabase.from("trash_lists").insert({
+      original_id: list.dbId,
+      board_id: boardId,
+      title: list.title,
+      position: list.position || 0,
+    });
+
+    if (trashListError) {
+      alert("Ошибка при архивации колонки: " + trashListError.message);
+      return;
+    }
+
+    // 3. Копируем все карточки этой колонки в архив
+    if (listCards.length > 0) {
+      const cardsToTrash = listCards.map((c: any) => ({
+        original_id: c.dbId,
+        list_id: c.list_id,
+        title: c.title,
+        description: c.description || null,
+        position: c.position || 0,
+      }));
+
+      const { error: trashCardsError } = await supabase.from("trash_cards").insert(cardsToTrash);
+      if (trashCardsError) {
+        alert("Ошибка при архивации карточек: " + trashCardsError.message);
+        return;
+      }
+    }
+
+    // 4. Удаляем колонку (карточки удалятся каскадно)
+    const { error: deleteError } = await supabase.from("lists").delete().eq("id", list.dbId);
+    
+    if (deleteError) {
+      alert("Ошибка при удалении колонки: " + deleteError.message);
+    } else {
+      setLists((prev) => prev.filter((l: any) => l.dbId !== list.dbId));
+      setCards((prev) => prev.filter((c: any) => c.list_id !== list.dbId));
+    }
+  };
+
+  // --- ПЕРЕТАСКИВАНИЕ ---
   const handleDragStart = (event: any) => {
     const { active } = event;
     const card = cards.find((c: any) => c.id === active.id);
@@ -86,7 +163,6 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
 
     if (!isActiveACard) return;
 
-    // --- Сценарий А: Бросаем карточку на другую карточку ---
     if (isOverACard) {
       setCards((prevCards: any[]) => {
         const activeIndex = prevCards.findIndex((c: any) => c.id === activeId);
@@ -100,7 +176,6 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
           newCards[activeIndex] = { ...activeCard, list_id: overCard.list_id };
           return arrayMove(newCards, activeIndex, overIndex);
         }
-        
         return arrayMove(prevCards, activeIndex, overIndex);
       });
 
@@ -112,9 +187,8 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
       }
     }
 
-    // --- Сценарий Б: Бросаем карточку в пустую колонку ---
     if (isOverAList) {
-            const newListIdStr = String(over.id); // Принудительно делаем строку
+      const newListIdStr = String(over.id);
       const realListId = parseInt(newListIdStr.replace("list-", ""), 10);
       
       setCards((prevCards: any[]) => 
@@ -133,7 +207,6 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
   return (
     <DndContext collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 items-start">
-        {/* Добавил типизацию (l: any) в map */}
         <SortableContext items={lists.map((l: any) => l.id)}>
           {lists.map((list: any) => (
             <DroppableList 
@@ -141,6 +214,8 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
               list={list} 
               cards={cards.filter((c: any) => c.list_id === list.dbId)}
               onAddCard={handleAddCard}
+              onDeleteCard={handleDeleteCard} // Передаем новую функцию
+              onDeleteList={handleDeleteList} // Передаем новую функцию
             />
           ))}
         </SortableContext>
