@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { AddListForm } from "@/components/add-list-form";
 import { DndContext, DragEndEvent, closestCorners } from "@dnd-kit/core";
 import { BoardDnd } from "@/components/board-dnd"; 
 
@@ -50,7 +49,6 @@ async function BoardContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
           initialCards={cards || []} 
           boardId={boardId} 
         />
-        <AddListForm boardId={boardId} currentListsCount={lists?.length || 0} />
       </div>
     </>
   );
