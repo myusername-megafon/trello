@@ -51,8 +51,8 @@ async function BoardContent({ boardId }: { boardId: string }) {
 }
 
 // 2. Основной компонент страницы (синхронный)
-export default function BoardPage({ params }: { params: { id: string } }) {
-  const boardId = params.id;
+export default async function BoardPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: boardId } = await params;
 
   return (
     <main className="min-h-screen bg-blue-500 flex flex-col">
