@@ -3,49 +3,26 @@ import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { SortableCard } from "./sortable-card";
-import { createClient } from "@/lib/supabase/client";
 
-export function DroppableList({ list, cards, boardId }: any) {
+export function DroppableList({ list, cards, onAddCard }: any) {
   const { setNodeRef } = useDroppable({
     id: list.id,
     data: { type: "List", list },
   });
 
-  // Состояние для добавления карточки
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
 
-  // Локальное состояние для карточек, чтобы они появлялись мгновенно
-  // В реальном проекте лучше поднять это в BoardDnd, но для MVP сойдет и так
-  const [localCards, setLocalCards] = useState(cards);
-
-  // Синхронизация, если пропсы изменились (например, при перетаскивании)
-  if (JSON.stringify(cards) !== JSON.stringify(localCards) && !loading) {
-     // Это грубая синхронизация, в идеале использовать useEffect
-     // Но чтобы не усложнять код, оставим так
-  }
-
-  const handleAddCard = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from("cards")
-      .insert({ list_id: list.id, title: title, position: cards.length })
-      .select()
-      .single();
-
-    if (error) {
-      alert("Ошибка: " + error.message);
-    } else if (data) {
+    const success = await onAddCard(list.id, title); // Вызываем функцию из BoardDnd
+    if (success) {
       setTitle("");
       setIsAdding(false);
-      // В данном случае для простоты просто перезагрузим страницу, 
-      // чтобы не синхронизировать состояния двух компонентов
-      window.location.reload(); 
     }
     setLoading(false);
   };
@@ -64,9 +41,8 @@ export function DroppableList({ list, cards, boardId }: any) {
           ))}
         </SortableContext>
 
-        {/* Форма добавления карточки */}
         {isAdding ? (
-          <form onSubmit={handleAddCard} className="flex flex-col gap-2 mt-2">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2 mt-2">
             <input
               type="text"
               value={title}

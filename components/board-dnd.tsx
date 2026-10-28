@@ -4,7 +4,6 @@ import { useState } from "react";
 import { DndContext, DragEndEvent, closestCorners, DragOverlay } from "@dnd-kit/core";
 import { SortableContext, arrayMove } from "@dnd-kit/sortable";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import { DroppableList } from "./droppable-list";
 
 export function BoardDnd({ initialLists, initialCards, boardId }: any) {
@@ -18,9 +17,8 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const supabase = createClient();
-  const router = useRouter();
 
-  // 1. Логика добавления колонки (перенесена из AddListForm)
+  // 1. Добавление колонки (без перезагрузки!)
   const handleAddList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newListTitle.trim()) return;
@@ -42,7 +40,26 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
     setIsSubmitting(false);
   };
 
-  // 2. Логика перетаскивания (остается без изменений)
+  // 2. Добавление карточки (без перезагрузки!)
+  const handleAddCard = async (listId: number, title: string) => {
+    const { data, error } = await supabase
+      .from("cards")
+      .insert({ list_id: listId, title: title, position: 0 })
+      .select()
+      .single();
+
+    if (error) {
+      alert("Ошибка: " + error.message);
+      return false;
+    }
+    if (data) {
+      setCards([...cards, data]);
+      return true;
+    }
+    return false;
+  };
+
+  // 3. Логика перетаскивания
   const handleDragStart = (event: any) => {
     const { active } = event;
     const card = cards.find((c: any) => c.id === active.id);
@@ -81,15 +98,10 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
         )
       );
 
-      const { error } = await supabase
+      await supabase
         .from("cards")
         .update({ list_id: newListId })
         .eq("id", activeId);
-
-      if (error) {
-        console.error(error);
-        router.refresh();
-      }
     }
   };
 
@@ -102,12 +114,12 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
               key={list.id} 
               list={list} 
               cards={cards.filter((c: any) => c.list_id === list.id)}
-              boardId={boardId} // Передаем boardId дальше для карточек
+              onAddCard={handleAddCard} // Передаем функцию добавления карточки
             />
           ))}
         </SortableContext>
 
-        {/* 3. Встроенная форма добавления колонки */}
+        {/* Форма добавления колонки */}
         <div className="w-72 flex-shrink-0">
           {isAddingList ? (
             <form onSubmit={handleAddList} className="bg-gray-100 rounded-lg p-3 flex flex-col gap-2">
