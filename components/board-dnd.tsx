@@ -7,8 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { DroppableList } from "./droppable-list";
 
 export function BoardDnd({ initialLists, initialCards, boardId }: any) {
-  const [lists, setLists] = useState(initialLists);
-  const [cards, setCards] = useState(initialCards);
+const [lists, setLists] = useState(initialLists.map((l: any) => ({ ...l, id: `list-${l.id}`, dbId: l.id })));
+const [cards, setCards] = useState(initialCards.map((c: any) => ({ ...c, id: `card-${c.id}`, dbId: c.id })));
   const [activeCard, setActiveCard] = useState<any>(null);
   
   // Состояние для формы добавления колонки
@@ -33,7 +33,7 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
     if (error) {
       alert("Ошибка: " + error.message);
     } else if (data) {
-      setLists([...lists, data]); // Мгновенно добавляем в UI
+      setLists([...lists, { ...data, id: `list-${data.id}`, dbId: data.id }]); // Мгновенно добавляем в UI
       setNewListTitle("");
       setIsAddingList(false);
     }
@@ -53,7 +53,7 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
       return false;
     }
     if (data) {
-      setCards([...cards, data]);
+      setCards([...cards, { ...data, id: `card-${data.id}`, dbId: data.id }]);
       return true;
     }
     return false;
@@ -101,7 +101,7 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
       await supabase
         .from("cards")
         .update({ list_id: newListId })
-        .eq("id", activeId);
+        .eq("id", cards.find((c: any) => c.id === activeId)?.dbId);
     }
   };
 
