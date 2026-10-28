@@ -58,6 +58,9 @@ export default function Home() {
         </div>
         <Suspense fallback={<div className="w-20 h-8 bg-blue-500 animate-pulse rounded"></div>}>
           <AuthButton />
+          <Link href="/trash" className="text-sm bg-blue-700 px-3 py-1 rounded hover:bg-blue-800 transition-colors">
+            Корзина
+          </Link>
         </Suspense>
       </nav>
 
