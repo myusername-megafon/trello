@@ -33,8 +33,11 @@ export function BoardTrashModal({ isOpen, onClose, boardId }: { isOpen: boolean,
     }
 
     const { error } = await supabase.from("cards").insert({
-      id: card.original_id, list_id: card.list_id, title: card.title, description: card.description, position: card.position,
-    });
+  list_id: card.list_id,
+  title: card.title,
+  description: card.description,
+  position: card.position,
+});
     
     if (error) return alert(error.message);
     
@@ -45,16 +48,21 @@ export function BoardTrashModal({ isOpen, onClose, boardId }: { isOpen: boolean,
   // Восстановление колонки (и её карточек)
   const handleRestoreList = async (list: any) => {
     const { error } = await supabase.from("lists").insert({
-      id: list.original_id, board_id: list.board_id, title: list.title, position: list.position,
-    });
+  board_id: list.board_id,
+  title: list.title,
+  position: list.position,
+});
     if (error) return alert(error.message);
 
     // Восстанавливаем карточки, которые были в этой колонке
     const cardsToRestore = trashCards.filter((c) => c.list_id === list.original_id);
     if (cardsToRestore.length > 0) {
       await supabase.from("cards").insert(cardsToRestore.map(c => ({
-        id: c.original_id, list_id: c.list_id, title: c.title, description: c.description, position: c.position,
-      })));
+  list_id: c.list_id,
+  title: c.title,
+  description: c.description,
+  position: c.position,
+})));
       await supabase.from("trash_cards").delete().in("id", cardsToRestore.map(c => c.id));
       setTrashCards((prev) => prev.filter((c) => !cardsToRestore.find(tc => tc.id === c.id)));
     }
