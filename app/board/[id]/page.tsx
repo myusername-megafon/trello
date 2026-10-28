@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AddListForm } from "@/components/add-list-form";
-import { ListColumn } from "@/components/list-column";
+import { DndContext, DragEndEvent, closestCorners } from "@dnd-kit/core";
+import { BoardDnd } from "@/components/board-dnd"; 
 
 async function BoardContent({ paramsPromise }: { paramsPromise: Promise<{ id: string }> }) {
   const { id: boardId } = await paramsPromise;
@@ -42,16 +43,13 @@ async function BoardContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
   return (
     <>
       <h1 className="text-2xl font-bold text-white px-6 pt-4">{board.title}</h1>
-      <div className="p-6 flex-1 flex gap-4 items-start overflow-x-auto">
-        {lists && lists.length > 0 ? (
-          lists.map((list) => {
-            // Фильтруем карточки, чтобы отдать компоненту только те, что принадлежат этой колонке
-            const listCards = cards.filter((c) => c.list_id === list.id);
-            return <ListColumn key={list.id} list={list} initialCards={listCards} />;
-          })
-        ) : (
-          <p className="text-white bg-blue-400 p-4 rounded-lg">В этой доске пока нет колонок.</p>
-        )}
+            <div className="p-6 flex-1 flex items-start overflow-x-auto">
+        {/* Передаем данные в DnD-компонент */}
+        <BoardDnd 
+          initialLists={lists || []} 
+          initialCards={cards || []} 
+          boardId={boardId} 
+        />
         <AddListForm boardId={boardId} currentListsCount={lists?.length || 0} />
       </div>
     </>
