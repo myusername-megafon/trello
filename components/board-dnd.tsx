@@ -5,6 +5,7 @@ import { DndContext, DragEndEvent, closestCorners, DragOverlay } from "@dnd-kit/
 import { SortableContext, arrayMove } from "@dnd-kit/sortable";
 import { createClient } from "@/lib/supabase/client";
 import { DroppableList } from "./droppable-list";
+import { BoardTrashModal } from "./board-trash-modal";
 
 export function BoardDnd({ initialLists, initialCards, boardId }: any) {
   const [lists, setLists] = useState(() => 
@@ -18,6 +19,7 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
 
   const supabase = createClient();
 
@@ -207,6 +209,16 @@ setCards((prev: any) => prev.filter((c: any) => c.list_id !== list.dbId));
   return (
     <DndContext collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 items-start">
+
+<div className="px-6 pt-4 flex justify-end">
+  <button 
+    onClick={() => setIsTrashOpen(true)}
+    className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+  >
+    🗑️ Корзина доски
+  </button>
+</div>
+
         <SortableContext items={lists.map((l: any) => l.id)}>
           {lists.map((list: any) => (
             <DroppableList 
@@ -256,6 +268,13 @@ setCards((prev: any) => prev.filter((c: any) => c.list_id !== list.dbId));
           </div>
         ) : null}
       </DragOverlay>
+
+      <BoardTrashModal 
+  isOpen={isTrashOpen} 
+  onClose={() => setIsTrashOpen(false)} 
+  boardId={boardId} 
+/>
+
     </DndContext>
   );
 }
