@@ -7,44 +7,49 @@ import { createClient } from "@/lib/supabase/client";
 import { DroppableList } from "./droppable-list";
 
 export function BoardDnd({ initialLists, initialCards, boardId }: any) {
-const [lists, setLists] = useState(initialLists.map((l: any) => ({ ...l, id: `list-${l.id}`, dbId: l.id })));
-const [cards, setCards] = useState(initialCards.map((c: any) => ({ ...c, id: `card-${c.id}`, dbId: c.id })));
-  const [activeCard, setActiveCard] = useState<any>(null);
+  const [lists, setLists] = useState(() => 
+    initialLists.map((l: any) => ({ ...l, id: `list-${l.id}`, dbId: l.id }))
+  );
+  const [cards, setCards] = useState(() => 
+    initialCards.map((c: any) => ({ ...c, id: `card-${c.id}`, dbId: c.id }))
+  );
   
-  // Состояние для формы добавления колонки
+  const [activeCard, setActiveCard] = useState<any>(null);
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const supabase = createClient();
 
-  // 1. Добавление колонки (без перезагрузки!)
   const handleAddList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newListTitle.trim()) return;
 
     setIsSubmitting(true);
+    const realBoardId = parseInt(boardId, 10);
+
     const { data, error } = await supabase
       .from("lists")
-      .insert({ board_id: boardId, title: newListTitle, position: lists.length })
+      .insert({ board_id: realBoardId, title: newListTitle, position: lists.length })
       .select()
       .single();
 
     if (error) {
       alert("Ошибка: " + error.message);
     } else if (data) {
-      setLists([...lists, { ...data, id: `list-${data.id}`, dbId: data.id }]); // Мгновенно добавляем в UI
+      setLists([...lists, { ...data, id: `list-${data.id}`, dbId: data.id }]);
       setNewListTitle("");
       setIsAddingList(false);
     }
     setIsSubmitting(false);
   };
 
-  // 2. Добавление карточки (без перезагрузки!)
-  const handleAddCard = async (listId: number, title: string) => {
+  const handleAddCard = async (listId: string, title: string) => {
+    const realListId = parseInt(listId.replace("list-", ""), 10);
+
     const { data, error } = await supabase
       .from("cards")
-      .insert({ list_id: listId, title: title, position: 0 })
+      .insert({ list_id: realListId, title: title, position: 0 })
       .select()
       .single();
 
@@ -59,7 +64,6 @@ const [cards, setCards] = useState(initialCards.map((c: any) => ({ ...c, id: `ca
     return false;
   };
 
-  // 3. Логика перетаскивания
   const handleDragStart = (event: any) => {
     const { active } = event;
     const card = cards.find((c: any) => c.id === active.id);
@@ -67,84 +71,80 @@ const [cards, setCards] = useState(initialCards.map((c: any) => ({ ...c, id: `ca
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-  setActiveCard(null);
-  const { active, over } = event;
-  if (!over) return;
+    setActiveCard(null);
+    const { active, over } = event;
+    if (!over) return;
 
-  const activeId = active.id;
-  const overId = over.id;
+    const activeId = active.id;
+    const overId = over.id;
 
-  // Если бросили на себя же
-  if (activeId === overId) return;
+    if (activeId === overId) return;
 
-  const isActiveACard = active.data.current?.type === "Card";
-  const isOverACard = over.data.current?.type === "Card";
-  const isOverAList = over.data.current?.type === "List";
+    const isActiveACard = active.data.current?.type === "Card";
+    const isOverACard = over.data.current?.type === "Card";
+    const isOverAList = over.data.current?.type === "List";
 
-  if (!isActiveACard) return;
+    if (!isActiveACard) return;
 
-  // Случай 1: Бросаем на другую карточку (сортировка внутри или смена колонки)
-  if (isOverACard) {
-    setCards((prevCards: any[]) => {
-      const activeIndex = prevCards.findIndex((c) => c.id === activeId);
-      const overIndex = prevCards.findIndex((c) => c.id === overId);
+    // --- Сценарий А: Бросаем карточку на другую карточку ---
+    if (isOverACard) {
+      setCards((prevCards: any[]) => {
+        const activeIndex = prevCards.findIndex((c: any) => c.id === activeId);
+        const overIndex = prevCards.findIndex((c: any) => c.id === overId);
+        
+        const activeCard = prevCards[activeIndex];
+        const overCard = prevCards[overIndex];
+        
+        if (activeCard.list_id !== overCard.list_id) {
+          const newCards = [...prevCards];
+          newCards[activeIndex] = { ...activeCard, list_id: overCard.list_id };
+          return arrayMove(newCards, activeIndex, overIndex);
+        }
+        
+        return arrayMove(prevCards, activeIndex, overIndex);
+      });
+
+      const activeCard = cards.find((c: any) => c.id === activeId);
+      const overCard = cards.find((c: any) => c.id === overId);
       
-      // Если карточки в разных колонках — нужно изменить list_id
-      const activeCard = prevCards[activeIndex];
-      const overCard = prevCards[overIndex];
-      
-      if (activeCard.list_id !== overCard.list_id) {
-        // Меняем колонку и переставляем
-        const newCards = [...prevCards];
-        newCards[activeIndex] = { ...activeCard, list_id: overCard.list_id };
-        return arrayMove(newCards, activeIndex, overIndex);
+      if (activeCard && overCard && activeCard.list_id !== overCard.list_id) {
+         await supabase.from("cards").update({ list_id: overCard.list_id }).eq("id", activeCard.dbId);
       }
+    }
+
+    // --- Сценарий Б: Бросаем карточку в пустую колонку ---
+    if (isOverAList) {
+      const newListIdStr = over.id;
+      const realListId = parseInt(newListIdStr.replace("list-", ""), 10);
       
-      // Если в одной колонке — просто сортируем
-      return arrayMove(prevCards, activeIndex, overIndex);
-    });
+      setCards((prevCards: any[]) => 
+        prevCards.map((card: any) => 
+          card.id === activeId ? { ...card, list_id: realListId } : card
+        )
+      );
 
-    // Обновляем в базе, если колонка изменилась
-    const activeCard = cards.find(c => c.id === activeId);
-    const overCard = cards.find(c => c.id === overId);
-    if (activeCard && overCard && activeCard.list_id !== overCard.list_id) {
-       await supabase.from("cards").update({ list_id: overCard.list_id }).eq("id", activeCard.dbId);
+      const activeCard = cards.find((c: any) => c.id === activeId);
+      if (activeCard) {
+        await supabase.from("cards").update({ list_id: realListId }).eq("id", activeCard.dbId);
+      }
     }
-  }
-
-  // Случай 2: Бросаем в пустую колонку (или в конец)
-  if (isOverAList) {
-    const newListId = over.id; // Это ID колонки с префиксом "list-"
-    const dbListId = lists.find(l => l.id === newListId)?.dbId;
-
-    setCards((prevCards: any[]) => 
-      prevCards.map((card) => 
-        card.id === activeId ? { ...card, list_id: dbListId } : card
-      )
-    );
-
-    const activeCard = cards.find(c => c.id === activeId);
-    if (activeCard && dbListId) {
-      await supabase.from("cards").update({ list_id: dbListId }).eq("id", activeCard.dbId);
-    }
-  }
-};
+  };
 
   return (
     <DndContext collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 items-start">
+        {/* Добавил типизацию (l: any) в map */}
         <SortableContext items={lists.map((l: any) => l.id)}>
           {lists.map((list: any) => (
             <DroppableList 
               key={list.id} 
               list={list} 
-              cards={cards.filter((c: any) => c.list_id === list.id)}
-              onAddCard={handleAddCard} // Передаем функцию добавления карточки
+              cards={cards.filter((c: any) => c.list_id === list.dbId)}
+              onAddCard={handleAddCard}
             />
           ))}
         </SortableContext>
 
-        {/* Форма добавления колонки */}
         <div className="w-72 flex-shrink-0">
           {isAddingList ? (
             <form onSubmit={handleAddList} className="bg-gray-100 rounded-lg p-3 flex flex-col gap-2">
