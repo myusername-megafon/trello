@@ -89,7 +89,7 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
     if (deleteError) {
       alert("Ошибка при удалении: " + deleteError.message);
     } else {
-      setCards((prev) => prev.filter((c: any) => c.dbId !== card.dbId));
+      setCards((prev: any) => prev.filter((c: any) => c.dbId !== card.dbId));
     }
   };
 
@@ -135,8 +135,8 @@ export function BoardDnd({ initialLists, initialCards, boardId }: any) {
     if (deleteError) {
       alert("Ошибка при удалении колонки: " + deleteError.message);
     } else {
-      setLists((prev) => prev.filter((l: any) => l.dbId !== list.dbId));
-      setCards((prev) => prev.filter((c: any) => c.list_id !== list.dbId));
+      setLists((prev: any) => prev.filter((l: any) => l.dbId !== list.dbId));
+setCards((prev: any) => prev.filter((c: any) => c.list_id !== list.dbId));
     }
   };
 
