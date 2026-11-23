@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { RotateCcw, X } from "lucide-react";
 
 export function TrashClient({ initialTrashLists, initialTrashCards }: any) {
   const [trashLists, setTrashLists] = useState(initialTrashLists);
@@ -104,58 +105,98 @@ export function TrashClient({ initialTrashLists, initialTrashCards }: any) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">Удаленные колонки</h2>
-        {trashLists.length === 0 ? (
-          <p className="text-gray-500 text-sm">Колонок в корзине нет.</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {trashLists.map((list: any) => (
-              <div key={list.id} className="bg-white p-4 rounded shadow border border-gray-200 flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-gray-800">{list.title}</p>
-                  <p className="text-xs text-gray-500">Удалено: {new Date(list.deleted_at).toLocaleString()}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleRestoreList(list)} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
-                    Восстановить
-                  </button>
-                  <button onClick={() => handlePermanentDeleteList(list.id)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
-                    Удалить навсегда
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="flex flex-col gap-8">
+      <TrashSection
+        title="Удалённые колонки"
+        empty="Колонок в корзине нет."
+        items={trashLists}
+        renderItem={(list) => ({
+          title: list.title,
+          deletedAt: list.deleted_at,
+          onRestore: () => handleRestoreList(list),
+          onDelete: () => handlePermanentDeleteList(list.id),
+        })}
+      />
 
-      <div>
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">Удаленные карточки</h2>
-        {trashCards.length === 0 ? (
-          <p className="text-gray-500 text-sm">Карточек в корзине нет.</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {trashCards.map((card: any) => (
-              <div key={card.id} className="bg-white p-4 rounded shadow border border-gray-200 flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-gray-800">{card.title}</p>
-                  <p className="text-xs text-gray-500">Удалено: {new Date(card.deleted_at).toLocaleString()}</p>
+      <TrashSection
+        title="Удалённые карточки"
+        empty="Карточек в корзине нет."
+        items={trashCards}
+        renderItem={(card) => ({
+          title: card.title,
+          deletedAt: card.deleted_at,
+          onRestore: () => handleRestoreCard(card),
+          onDelete: () => handlePermanentDeleteCard(card.id),
+        })}
+      />
+    </div>
+  );
+}
+
+function TrashSection({
+  title,
+  empty,
+  items,
+  renderItem,
+}: {
+  title: string;
+  empty: string;
+  items: any[];
+  renderItem: (item: any) => {
+    title: string;
+    deletedAt: string;
+    onRestore: () => void;
+    onDelete: () => void;
+  };
+}) {
+  return (
+    <section>
+      <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-slate-800">
+        {title}
+        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-600">
+          {items.length}
+        </span>
+      </h2>
+      {items.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-400">
+          {empty}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {items.map((item) => {
+            const { title: itemTitle, deletedAt, onRestore, onDelete } = renderItem(item);
+            return (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-slate-800">{itemTitle}</p>
+                  <p className="text-xs text-slate-500">
+                    Удалено: {new Date(deletedAt).toLocaleString()}
+                  </p>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleRestoreCard(card)} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    onClick={onRestore}
+                    className="flex items-center gap-1.5 rounded-lg bg-emerald-100 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-200"
+                  >
+                    <RotateCcw size={14} />
                     Восстановить
                   </button>
-                  <button onClick={() => handlePermanentDeleteCard(card.id)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
-                    Удалить навсегда
+                  <button
+                    onClick={onDelete}
+                    className="flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-200"
+                  >
+                    <X size={14} />
+                    Навсегда
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }

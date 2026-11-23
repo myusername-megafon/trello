@@ -66,3 +66,56 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ---------- Красочные фоны досок ---------- */
+.board-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6a3093 100%);
+}
+
+.bg-grad-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.bg-grad-2 { background: linear-gradient(135deg, #ff6b6b 0%, #f06595 100%); }
+.bg-grad-3 { background: linear-gradient(135deg, #20c997 0%, #0ca678 100%); }
+.bg-grad-4 { background: linear-gradient(135deg, #fcc419 0%, #f76707 100%); }
+.bg-grad-5 { background: linear-gradient(135deg, #4dabf7 0%, #2b8aef 100%); }
+.bg-grad-6 { background: linear-gradient(135deg, #cc5de8 0%, #862e9c 100%); }
+.bg-grad-7 { background: linear-gradient(135deg, #3bc9db 0%, #1098ad 100%); }
+.bg-grad-8 { background: linear-gradient(135deg, #f783ac 0%, #d6336c 100%); }
+
+/* Тонкая «стеклянная» панель */
+.glass {
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Аккуратные скроллбары в колонках */
+.nice-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.nice-scroll::-webkit-scrollbar-track { background: transparent; }
+.nice-scroll::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 8px;
+}
+.nice-scroll::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.6); }
+
+/* Пунктирная зона «добавить карточку» */
+.dashed-drop {
+  border: 2px dashed rgba(148, 163, 184, 0.55);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.dashed-drop:hover {
+  border-color: rgba(99, 102, 241, 0.7);
+  background-color: rgba(99, 102, 241, 0.06);
+}
+
+/* Мягкое появление модалки */
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-modal-in { animation: modal-in 0.18s ease-out; }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in { animation: fade-in 0.15s ease-out; }

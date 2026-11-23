@@ -1,21 +1,34 @@
-import { AuthButton } from "@/components/auth-button";
 import { Suspense } from "react";
-import { createClient } from "@/lib/supabase/server";
-import { CreateBoardForm } from "@/components/create-board-form";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { LayoutGrid } from "lucide-react";
 
-// 1. Компонент для загрузки данных (вынесен отдельно)
+import { createClient } from "@/lib/supabase/server";
+import { HeaderActions } from "@/components/header-actions";
+import { CreateBoardForm } from "@/components/create-board-form";
+
+const GRADIENTS = [
+  "bg-grad-1",
+  "bg-grad-2",
+  "bg-grad-3",
+  "bg-grad-4",
+  "bg-grad-5",
+  "bg-grad-6",
+  "bg-grad-7",
+  "bg-grad-8",
+];
+
 async function BoardsList() {
   const supabase = await createClient();
-  
-  // Получаем данные пользователя (это не вызовет ошибку, т.к. мы внутри Suspense)
-  const { data: { user } } = await supabase.auth.getUser();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return <p className="text-red-500">Ошибка авторизации. Пожалуйста, войдите снова.</p>;
+    redirect("/auth/login");
   }
 
-  // Получаем доски
   const { data: boards } = await supabase
     .from("boards")
     .select("*")
@@ -23,62 +36,102 @@ async function BoardsList() {
 
   if (!boards || boards.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow text-center">
-        <p className="text-gray-500 mb-4">У вас пока нет досок.</p>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          Создать первую доску
-        </button>
+      <div className="rounded-2xl border-2 border-dashed border-white/30 bg-white/10 p-10 text-center backdrop-blur">
+        <LayoutGrid className="mx-auto mb-3 text-white/60" size={40} />
+        <p className="text-lg font-medium text-white/90">У вас пока нет досок</p>
+        <p className="mt-1 text-sm text-white/60">
+          Создайте первую доску — поле ввода выше ↑
+        </p>
       </div>
     );
   }
 
   return (
-  <div className="flex gap-6 items-start">
-    {boards.map((board) => (
-      <Link 
-        href={`/board/${board.id}`} 
-        key={board.id} 
-        className="bg-white p-4 rounded-lg shadow min-w-[250px] block hover:shadow-lg transition-shadow"
-      >
-        <h3 className="font-bold text-lg mb-2 text-gray-800">{board.title}</h3>
-      </Link>
-    ))}
-  </div>
-); 
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {boards.map((board, i) => (
+        <Link
+          key={board.id}
+          href={`/board/${board.id}`}
+          className="group overflow-hidden rounded-xl bg-white shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
+        >
+          <div
+            className={`${
+              GRADIENTS[i % GRADIENTS.length]
+            } h-24 w-full transition-transform duration-300 group-hover:scale-[1.03]`}
+          />
+          <div className="flex items-center justify-between px-4 py-3">
+            <h3 className="truncate font-semibold text-gray-800">
+              {board.title}
+            </h3>
+            <span className="text-sm text-gray-400 transition-transform group-hover:translate-x-1">
+              →
+            </span>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
 }
 
-// 2. Основной компонент страницы (отрисуется мгновенно)
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  // Считаем содержимое общей корзины, чтобы показывать бейдж только когда там что-то есть.
+  // Основная работа с корзиной идёт на уровне доски — эта страница лишь общий вход.
+  const [{ count: listsCount }, { count: cardsCount }] = await Promise.all([
+    supabase.from("trash_lists").select("id", { count: "exact", head: true }),
+    supabase.from("trash_cards").select("id", { count: "exact", head: true }),
+  ]);
+
+  const trashCount = (listsCount ?? 0) + (cardsCount ?? 0);
+
   return (
-    <main className="min-h-screen bg-gray-100 flex flex-col">
+    <main className="board-gradient flex min-h-screen flex-col">
       {/* Шапка */}
-      <nav className="bg-blue-600 text-white p-4 flex justify-between items-center shadow-md">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Trello Clone</h1>
+      <nav className="glass sticky top-0 z-10 border-b border-white/10">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20 text-lg font-black text-white shadow-inner">
+              T
+            </span>
+            <h1 className="text-xl font-bold tracking-tight text-white">
+              TaskBoard
+            </h1>
+          </div>
+
+          <HeaderActions email={user.email ?? undefined} trashCount={trashCount} />
         </div>
-        <Suspense fallback={<div className="w-20 h-8 bg-blue-500 animate-pulse rounded"></div>}>
-          <AuthButton />
-          <Link href="/trash" className="text-sm bg-blue-700 px-3 py-1 rounded hover:bg-blue-800 transition-colors">
-            Корзина
-          </Link>
-        </Suspense>
       </nav>
 
       {/* Контент */}
-      <div className="p-8 flex-1 overflow-x-auto">
-
-      {/* Добавляем форму сюда */}
-        <div className="mb-6">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+        <div className="mb-8">
           <CreateBoardForm />
         </div>
 
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">Мои доски</h2>
-        
-        {/* Оборачиваем загрузку досок в Suspense */}
-        <Suspense fallback={<p className="text-gray-500 animate-pulse">Загрузка ваших досок...</p>}>
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white/90">
+          <LayoutGrid size={18} />
+          Мои доски
+        </h2>
+
+        <Suspense
+          fallback={
+            <div className="animate-pulse text-white/70">
+              Загрузка ваших досок…
+            </div>
+          }
+        >
           <BoardsList />
         </Suspense>
-      </div> 
+      </div>
     </main>
   );
 }

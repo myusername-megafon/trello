@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DndContext, DragEndEvent, closestCorners, DragOverlay } from "@dnd-kit/core";
 import { SortableContext, arrayMove } from "@dnd-kit/sortable";
 import { createClient } from "@/lib/supabase/client";
+import { Plus, Trash2 } from "lucide-react";
 import { DroppableList } from "./droppable-list";
 import { BoardTrashModal } from "./board-trash-modal";
 
@@ -209,55 +210,56 @@ setCards((prev: any) => prev.filter((c: any) => c.list_id !== list.dbId));
   return (
     <DndContext collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 items-start">
-
-<div className="px-6 pt-4 flex justify-end">
-  <button 
-    onClick={() => setIsTrashOpen(true)}
-    className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-  >
-    🗑️ Корзина доски
-  </button>
-</div>
-
         <SortableContext items={lists.map((l: any) => l.id)}>
           {lists.map((list: any) => (
-            <DroppableList 
-              key={list.id} 
-              list={list} 
+            <DroppableList
+              key={list.id}
+              list={list}
               cards={cards.filter((c: any) => c.list_id === list.dbId)}
               onAddCard={handleAddCard}
-              onDeleteCard={handleDeleteCard} // Передаем новую функцию
-              onDeleteList={handleDeleteList} // Передаем новую функцию
+              onDeleteCard={handleDeleteCard}
+              onDeleteList={handleDeleteList}
             />
           ))}
         </SortableContext>
 
         <div className="w-72 flex-shrink-0">
           {isAddingList ? (
-            <form onSubmit={handleAddList} className="bg-gray-100 rounded-lg p-3 flex flex-col gap-2">
+            <form onSubmit={handleAddList} className="flex flex-col gap-2 rounded-xl bg-slate-100 p-3 shadow-lg">
               <input
                 type="text"
                 value={newListTitle}
                 onChange={(e) => setNewListTitle(e.target.value)}
-                placeholder="Название колонки..."
-                className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 text-sm"
+                placeholder="Название колонки…"
+                className="rounded-lg border border-slate-300 p-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
                 autoFocus
                 disabled={isSubmitting}
               />
               <div className="flex gap-2">
-                <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">
-                  {isSubmitting ? "..." : "Добавить"}
+                <button type="submit" disabled={isSubmitting || !newListTitle.trim()} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50">
+                  {isSubmitting ? "…" : "Добавить"}
                 </button>
-                <button type="button" onClick={() => setIsAddingList(false)} className="text-gray-500 hover:text-gray-700 text-sm px-2">
+                <button type="button" onClick={() => setIsAddingList(false)} className="rounded-lg px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-200">
                   Отмена
                 </button>
               </div>
             </form>
           ) : (
-            <button onClick={() => setIsAddingList(true)} className="bg-white/30 hover:bg-white/40 text-white w-full p-3 rounded-lg text-left transition-colors font-medium">
-              + Добавить колонку
+            <button onClick={() => setIsAddingList(true)} className="flex w-full items-center gap-2 rounded-xl bg-white/20 p-3 text-left font-medium text-white backdrop-blur transition-colors hover:bg-white/30">
+              <Plus size={18} />
+              Добавить колонку
             </button>
           )}
+
+          {/* Корзина доски — второстепенное действие под кнопкой добавления */}
+          <button
+            onClick={() => setIsTrashOpen(true)}
+            className="mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+            title="Корзина этой доски"
+          >
+            <Trash2 size={16} />
+            Корзина доски
+          </button>
         </div>
       </div>
 

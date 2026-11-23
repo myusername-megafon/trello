@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { RotateCcw, Trash2, X } from "lucide-react";
 
 export function BoardTrashModal({ isOpen, onClose, boardId }: { isOpen: boolean, onClose: () => void, boardId: string }) {
   const [trashLists, setTrashLists] = useState<any[]>([]);
@@ -87,52 +88,99 @@ export function BoardTrashModal({ isOpen, onClose, boardId }: { isOpen: boolean,
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-lg font-bold text-gray-800">Корзина доски</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-xl">✕</button>
+    <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="animate-modal-in flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+            <Trash2 size={18} className="text-indigo-600" />
+            Корзина доски
+          </h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700"
+            aria-label="Закрыть"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <div className="flex border-b">
-          <button onClick={() => setActiveTab("cards")} className={`px-4 py-2 text-sm font-medium ${activeTab === "cards" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"}`}>
+        <div className="flex border-b border-slate-100 px-5">
+          <button
+            onClick={() => setActiveTab("cards")}
+            className={`px-3 py-2.5 text-sm font-medium transition-colors ${activeTab === "cards" ? "border-b-2 border-indigo-600 text-indigo-600" : "text-slate-500 hover:text-slate-800"}`}
+          >
             Карточки ({trashCards.length})
           </button>
-          <button onClick={() => setActiveTab("lists")} className={`px-4 py-2 text-sm font-medium ${activeTab === "lists" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"}`}>
+          <button
+            onClick={() => setActiveTab("lists")}
+            className={`px-3 py-2.5 text-sm font-medium transition-colors ${activeTab === "lists" ? "border-b-2 border-indigo-600 text-indigo-600" : "text-slate-500 hover:text-slate-800"}`}
+          >
             Колонки ({trashLists.length})
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1">
+        <div className="nice-scroll flex-1 overflow-y-auto p-5">
           {activeTab === "cards" && (
             <div className="flex flex-col gap-2">
-              {trashCards.length === 0 ? <p className="text-gray-500 text-sm">Пусто</p> : trashCards.map(card => (
-                <div key={card.id} className="flex justify-between items-center p-3 border rounded bg-gray-50">
-                  <span className="text-gray-800 text-sm">{card.title}</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleRestoreCard(card)} className="text-green-600 hover:underline text-xs">Восстановить</button>
-                    <button onClick={() => handlePermanentDeleteCard(card.id)} className="text-red-600 hover:underline text-xs">Удалить</button>
+              {trashCards.length === 0 ? (
+                <EmptyState text="Удалённых карточек нет" />
+              ) : (
+                trashCards.map((card) => (
+                  <div key={card.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <span className="truncate text-sm text-slate-800">{card.title}</span>
+                    <div className="flex shrink-0 gap-2">
+                      <button onClick={() => handleRestoreCard(card)} className="flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-200">
+                        <RotateCcw size={13} />
+                        Восстановить
+                      </button>
+                      <button onClick={() => handlePermanentDeleteCard(card.id)} className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-200">
+                        <X size={13} />
+                        Навсегда
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           )}
 
           {activeTab === "lists" && (
             <div className="flex flex-col gap-2">
-              {trashLists.length === 0 ? <p className="text-gray-500 text-sm">Пусто</p> : trashLists.map(list => (
-                <div key={list.id} className="flex justify-between items-center p-3 border rounded bg-gray-50">
-                  <span className="text-gray-800 text-sm">{list.title}</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleRestoreList(list)} className="text-green-600 hover:underline text-xs">Восстановить</button>
-                    <button onClick={() => handlePermanentDeleteList(list.id)} className="text-red-600 hover:underline text-xs">Удалить</button>
+              {trashLists.length === 0 ? (
+                <EmptyState text="Удалённых колонок нет" />
+              ) : (
+                trashLists.map((list) => (
+                  <div key={list.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <span className="truncate text-sm font-medium text-slate-800">{list.title}</span>
+                    <div className="flex shrink-0 gap-2">
+                      <button onClick={() => handleRestoreList(list)} className="flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-200">
+                        <RotateCcw size={13} />
+                        Восстановить
+                      </button>
+                      <button onClick={() => handlePermanentDeleteList(list.id)} className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-200">
+                        <X size={13} />
+                        Навсегда
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-10 text-slate-400">
+      <Trash2 size={32} strokeWidth={1.2} />
+      <p className="text-sm">{text}</p>
     </div>
   );
 }
